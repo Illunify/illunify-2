@@ -1,0 +1,17 @@
+import *as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js'
+const w = 1e3, h = 750, PI = Math.PI, g = new THREE.TorusKnotGeometry(1, .32, 16, 8)
+g.computeBoundingBox()
+const c = g.boundingBox.getCenter(new THREE.Vector3())
+g.translate(-c.x, -c.y, -c.z)
+const canvas = document.getElementById('canvas'), scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(80, w / h, 1, 1e3), renderer = new THREE.WebGLRenderer({ canvas, antialias: !0, powerPreference: 'high-performance' })
+scene.background = new THREE.Color(0x0a0a08), camera.position.z = 8, renderer.setSize(w, h), renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+const mesh = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0xf5f5f7, toneMapped: !1 }))
+scene.add(mesh, new THREE.AmbientLight(0xf5f5f7, .4))
+const l = new THREE.PointLight(0xf5f5f7, .6); l.position.set(0, 12, 6), scene.add(l)
+const rt = new THREE.WebGLRenderTarget(w, h, { type: THREE.UnsignedByteType, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: !1 }), mat = new THREE.ShaderMaterial({ uniforms: { tDiffuse: { value: null }, resolution: { value: new THREE.Vector2(w, h) }, gridSize: { value: 2 }, pixelSizeRatio: { value: 4 }, darkColor: { value: new THREE.Color(0x0a0a08) }, lightColor: { value: new THREE.Color(0xf5f5f7) } }, depthTest: !1, depthWrite: !1, vertexShader: `varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`, fragmentShader: `uniform sampler2D tDiffuse;uniform vec2 resolution;uniform float gridSize;uniform float pixelSizeRatio;uniform vec3 darkColor;uniform vec3 lightColor;varying vec2 vUv;const float t[16]=float[16](0.941,0.294,0.765,0.059,0.471,0.706,0.235,0.529,0.824,0.118,0.882,0.176,0.353,0.588,0.412,0.647);void main(){vec2 fc=vUv*resolution;float ps=gridSize*pixelSizeRatio;vec2 uv=floor(fc/ps)*ps/resolution;vec3 col=texture2D(tDiffuse,uv).rgb;float l=dot(col,vec3(0.299,0.587,0.114));vec2 px=fract(fc/gridSize*0.25)*4.0;int i=int(px.y)*4+int(px.x);vec3 base=(l>0.941||l<0.059)?darkColor:(l<t[i]?darkColor:lightColor);gl_FragColor=vec4(base*0.6+col*0.4,1.0);}` }), postScene = new THREE.Scene(), postCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
+postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat))
+let tX = 0, tY = 0, cX = 0, cY = 0, lX = 0, lY = 0, needsUpdate = !0
+const speed = .03, maxRot = PI / 5, rect = canvas.getBoundingClientRect(), clamp = (v, mn, mx) => Math.max(mn, Math.min(mx, v)), handler = (e) => { const touch = e.touches?.[0] || e, x = touch.clientX - rect.left, y = touch.clientY - rect.top; if (Math.abs(x - lX) < 1 && Math.abs(y - lY) < 1) return; lX = x, lY = y, tY = clamp((x / w - .5) * PI, -maxRot, maxRot), tX = clamp((y / h - .5) * PI, -maxRot, maxRot) }
+document.addEventListener('mousemove', handler, { passive: !0 }), document.addEventListener('touchmove', handler, { passive: !0 }), document.addEventListener('touchstart', handler, { passive: !0 })
+const animate = () => { requestAnimationFrame(animate); const dX = Math.abs(tX - cX), dY = Math.abs(tY - cY); if ((needsUpdate = needsUpdate || dX > 1e-4 || dY > 1e-4)) { cX += (tX - cX) * speed, cY += (tY - cY) * speed, mesh.rotation.set(cX, cY, 0), renderer.setRenderTarget(rt), renderer.render(scene, camera), mat.uniforms.tDiffuse.value = rt.texture, renderer.setRenderTarget(null), renderer.render(postScene, postCam), needsUpdate = dX > 1e-4 || dY > 1e-4 } }
+animate()

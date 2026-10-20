@@ -1,0 +1,5 @@
+if (window.matchMedia('(min-width:1118px) and (orientation: landscape), (min-height:784px) and (orientation: landscape)').matches) {
+  document.addEventListener('DOMContentLoaded', () => {
+    const c = document.getElementById('custom-cursor'); let x = innerWidth / 2, y = innerHeight / 2, px = x, py = y, vis = false; const l = (a, b, n) => (1 - n) * a + n * b; document.addEventListener('mousemove', e => { x = e.clientX; y = e.clientY; if (!vis) { c.classList.add('visible'); vis = true } }); (function a() { px = l(px, x, 0.15); py = l(py, y, 0.15); c.style.left = px + 'px'; c.style.top = py + 'px'; requestAnimationFrame(a) })(); const h = document.querySelectorAll('a,button,#logo'); h.forEach(el => { el.addEventListener('mouseenter', () => c.classList.add('hover')); el.addEventListener('mouseleave', () => c.classList.remove('hover')) }); document.addEventListener('mousedown', () => c.classList.add('active')); document.addEventListener('mouseup', () => c.classList.remove('active'));
+  });
+}
